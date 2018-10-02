@@ -7,6 +7,7 @@ use App\Domain\GlobalDbRecordCounter;
 use App\Domain\GlobalDtoValidator;
 use App\Domain\GlobalResultHandler;
 use App\Domain\Model\ClientServiceValidity;
+use App\Jobs\ProccessMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -71,7 +72,7 @@ class ApiController extends Controller
 
     }
 
-    public function addClientServiceValidity(){
+    public function createOrUpdateClientServiceValidity(){
 
         $dataJson = file_get_contents('php://input');
         $dataArray =  json_decode($dataJson, true);
@@ -151,11 +152,7 @@ class ApiController extends Controller
 
             }else{
 
-                //return $nowDateTimeStamp;
                 $newServiceValidityForClient = new ClientServiceValidity($dataArray['serviceid'], $dataArray['userid'], $dataArray['tenantid'], $nowDateTimeStamp,  $nowDateTimeStamp + $dataArray['period'], true );
-
-
-                //return $newServiceValidityForClient;
 
                 $newServiceValidityForClient->save();
 

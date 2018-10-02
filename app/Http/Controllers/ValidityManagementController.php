@@ -9,6 +9,7 @@ use App\Domain\GlobalDbRecordCounter;
 use App\Domain\GlobalDtoValidator;
 use App\Domain\GlobalResultHandler;
 use App\Domain\Model\ClientServiceValidity;
+use App\Jobs\ProccessMessage;
 use Illuminate\Http\Request;
 
 class ValidityManagementController extends Controller
@@ -37,6 +38,11 @@ class ValidityManagementController extends Controller
             else {$checkIfServiceWasRegisteredForClient->enablementstatus = false; $checkIfServiceWasRegisteredForClient->reasonenablementchanged = $request->get('reason');   $checkIfServiceWasRegisteredForClient->save();}
 
         }
+
+
+
+        ProccessMessage::dispatch(env('CLIENT_SERVICE_VALIDITY_DISABLED_EXCHANGE'), env('RABBIT_MQ_EXCHANGE_TYPE'), json_encode($checkIfServiceWasRegisteredForClient));
+
 
         return response(GlobalResultHandler::buildFaillureReasonArray('The Client Service Validity was disabled successfully'), 200);
 
@@ -69,6 +75,9 @@ class ValidityManagementController extends Controller
             else {$checkIfServiceWasRegisteredForClient->enablementstatus = true; $checkIfServiceWasRegisteredForClient->reasonenablementchanged = $request->get('reason'); $checkIfServiceWasRegisteredForClient->save();}
 
         }
+
+        ProccessMessage::dispatch(env('CLIENT_SERVICE_VALIDITY_RENABLED_EXCHANGE'), env('RABBIT_MQ_EXCHANGE_TYPE'), json_encode($checkIfServiceWasRegisteredForClient));
+
 
         return response(GlobalResultHandler::buildFaillureReasonArray('The Client Service Validity was renabled successfully'), 200);
 
