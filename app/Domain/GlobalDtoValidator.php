@@ -38,6 +38,11 @@ class GlobalDtoValidator
 
     }
 
+    public static function  required(){
+
+        return 'required';
+
+    }
 
 
 }

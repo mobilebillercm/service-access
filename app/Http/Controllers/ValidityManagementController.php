@@ -139,4 +139,34 @@ class ValidityManagementController extends Controller
 
 
     }
+
+    public function getClientServicesValidityPeriods($tenantid, $clientid){
+
+
+
+        $clientsToAddValidityTo = Client::where('clientid', '=', $clientid)->get();
+
+
+        if(!GlobalDbRecordCounter::countDbRecordIsExactlelOne($clientsToAddValidityTo)){return response(GlobalResultHandler::buildFaillureReasonArray('Client not found'), 200);}
+
+
+        $checkIfServiceWasRegisteredForClients = ClientServiceValidity::where('clientid', '=',  $clientid)->where('tenantid', '=',  $tenantid)->get();
+
+
+        if(!GlobalDbRecordCounter::countDbRecordIsExactlelOne($clientsToAddValidityTo)){return response(GlobalResultHandler::buildFaillureReasonArray('Validity not found for client'), 200);}
+
+
+        $currentTime = time();
+
+
+        foreach ($checkIfServiceWasRegisteredForClients  as $checkIfServiceWasRegisteredForClient){
+
+            $checkIfServiceWasRegisteredForClient->currentdate = $currentTime;
+        }
+
+        return GlobalResultHandler::buildSuccesResponseArray($checkIfServiceWasRegisteredForClients);
+
+
+
+    }
 }

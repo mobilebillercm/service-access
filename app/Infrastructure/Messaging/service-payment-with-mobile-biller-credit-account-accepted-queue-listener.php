@@ -29,7 +29,7 @@ use PhpAmqpLib\Connection\AMQPStreamConnection;
 
 
     $channel->exchange_declare(
-        parse_ini_file("global-var-config.ini", true)['EXCHANGES']['CLIENT_SERVICE_VALIDITY_PERIOD_CHANGED_EXCHANGE'],
+        parse_ini_file("global-var-config.ini", true)['EXCHANGES']['SERVICE_PAYEMENT_WITH_MOBILE_BILLER_CREDIT_ACCOUNT_ACCEPTED_EXCHANGE'],
         'fanout',
         false,
         true,
@@ -44,10 +44,10 @@ use PhpAmqpLib\Connection\AMQPStreamConnection;
 
     $channel->queue_bind(
         $queue_name,
-        parse_ini_file("global-var-config.ini", true)['EXCHANGES']['CLIENT_SERVICE_VALIDITY_PERIOD_CHANGED_EXCHANGE']
+        parse_ini_file("global-var-config.ini", true)['EXCHANGES']['SERVICE_PAYEMENT_WITH_MOBILE_BILLER_CREDIT_ACCOUNT_ACCEPTED_EXCHANGE']
     );
 
-    echo " [*] Waiting for        ...       To exit press CTRL+C\n";
+    echo " [*] Waiting for service payement with mobile credit account to be made       ...       To exit press CTRL+C\n";
 
 
 
@@ -90,6 +90,8 @@ use PhpAmqpLib\Connection\AMQPStreamConnection;
             $data = json_decode($msg->body);
 
 
+            //echo $msg->body;
+
 
             $res = $client->post($url, [
                 'headers' => [
@@ -97,6 +99,8 @@ use PhpAmqpLib\Connection\AMQPStreamConnection;
                 ],
                 'body' => json_encode($data)
             ]);
+
+            echo $res->getBody();
 
 
         } catch (BadResponseException $e) {

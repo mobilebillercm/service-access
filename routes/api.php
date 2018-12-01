@@ -21,6 +21,8 @@ Route::post('/client-service-validities', 'ApiController@createOrUpdateClientSer
 
 
 
+
+
 ///CONTEXT ROUTES
 Route::post('/client-service-disable', 'ValidityManagementController@disableClientServiceValidity')->middleware('token.verification');
 
@@ -28,12 +30,7 @@ Route::post('/client-service-enable', 'ValidityManagementController@renableClien
 
 Route::post('/client-service-validity-check', 'ValidityManagementController@isClientServiceValidityValid')->middleware('token.verification');
 
-
-
-
-
-
-
+Route::get('/tenant/{tenantid}/client/{clientid}/services-validities-periods', 'ValidityManagementController@getClientServicesValidityPeriods')->middleware('token.verification');
 
 
 

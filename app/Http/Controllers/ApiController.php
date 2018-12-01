@@ -8,6 +8,7 @@ use App\Domain\GlobalDtoValidator;
 use App\Domain\GlobalResultHandler;
 use App\Domain\Model\ClientServiceValidity;
 use App\Jobs\ProccessMessage;
+use App\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -78,17 +79,12 @@ class ApiController extends Controller
         $dataArray =  json_decode($dataJson, true);
 
 
-        if(!$dataArray){
-            return response(GlobalResultHandler::buildFaillureReasonArray("Invalid Data"), 200);
-        }
-
-
-
         $validationrules =  [
-            'serviceid' => GlobalDtoValidator::requireStringMinMax(1, 150),
+            'service' => GlobalDtoValidator::required(),
+            'user' => GlobalDtoValidator::required(),
             'userid' => GlobalDtoValidator::requireStringMinMax(1, 150),
             'tenantid' => GlobalDtoValidator::requireStringMinMax(1, 150),
-            'period' => GlobalDtoValidator::requireNumeric(),
+            'price' => GlobalDtoValidator::required(),
         ];
 
 
@@ -99,21 +95,64 @@ class ApiController extends Controller
 
 
 
+        $service = json_decode($dataArray['service'], true);
+        //$user = json_decode($dataArray['user'], true);
+        $tenantid = $dataArray['tenantid'];
+        $price = json_decode($dataArray['price'], true);
+        $timeunit = $price['duration']['timeUnit'];
+        $value = $price['duration']['value'];
+        $seviceid = $service['b_id'];
+
+
+
+        $unitmultipliers = Unit::where('name', '=', $timeunit)->get();
+
+
+
+        //return json_encode($unitmultipliers);
+
+        if(!GlobalDbRecordCounter::countDbRecordIsExactlelOne($unitmultipliers)){
+            return response(GlobalResultHandler::buildFaillureReasonArray("Time unit not found"), 200);
+        }
+
+
+        $unitmultiplier = $unitmultipliers[0]->numdays;
+        $period =(int)$unitmultiplier * (int)$value * 3600 * 24;
+
+        //return $period;
+
+
+        if(!$dataArray){
+            return response(GlobalResultHandler::buildFaillureReasonArray("Invalid Data"), 200);
+        }
+
+
+
+
+
+
         DB::beginTransaction();
 
         try{
 
-            $clientsToAddValidityTo = Client::where('clientid', '=', $dataArray['userid'])->get();
+
+
+            $clientsToAddValidityTo = Client::where('clientid', '=', $dataArray['userid'])->where('tenantid', '=', $tenantid)->get();
+
+            //return json_encode($clientsToAddValidityTo);
 
 
             if(!GlobalDbRecordCounter::countDbRecordIsExactlelOne($clientsToAddValidityTo)){return response(GlobalResultHandler::buildFaillureReasonArray('Client not found'), 200);}
 
 
 
-            $checkIfServiceWasRegisteredForClients = ClientServiceValidity::where('serviceid', '=', $dataArray['serviceid'] )->where('clientid', '=', $dataArray['userid'] )->where('tenantid', '=', $dataArray['tenantid'] )->get();
+            $checkIfServiceWasRegisteredForClients = ClientServiceValidity::where('serviceid', '=', $seviceid)->where('clientid', '=', $dataArray['userid'] )->where('tenantid', '=', $tenantid)->get();
 
 
             $nowDateTimeStamp = time();
+
+
+            $existingservice = false;
 
 
 
@@ -121,6 +160,7 @@ class ApiController extends Controller
 
 
 
+                $existingservice = true;
 
                 $checkIfServiceWasRegisteredForClient = $checkIfServiceWasRegisteredForClients[0];
 
@@ -134,7 +174,7 @@ class ApiController extends Controller
 
 
                     $checkIfServiceWasRegisteredForClient->startdate = $nowDateTimeStamp;
-                    $checkIfServiceWasRegisteredForClient->enddate = $nowDateTimeStamp + $dataArray['period'];
+                    $checkIfServiceWasRegisteredForClient->enddate = $nowDateTimeStamp + $period;
 
                     $checkIfServiceWasRegisteredForClient->save();
 
@@ -142,7 +182,8 @@ class ApiController extends Controller
                 }else {
 
 
-                    $checkIfServiceWasRegisteredForClient->enddate += $dataArray['period'];;
+
+                    $checkIfServiceWasRegisteredForClient->enddate += $period;;
 
                     $checkIfServiceWasRegisteredForClient->save();
 
@@ -152,7 +193,11 @@ class ApiController extends Controller
 
             }else{
 
-                $newServiceValidityForClient = new ClientServiceValidity($dataArray['serviceid'], $dataArray['userid'], $dataArray['tenantid'], $nowDateTimeStamp,  $nowDateTimeStamp + $dataArray['period'], true );
+                $existingservice = false;
+
+                $newServiceValidityForClient = new ClientServiceValidity($seviceid, $dataArray['userid'], $tenantid,
+                    $nowDateTimeStamp,  $nowDateTimeStamp + $period, 1, 0, null );
+
 
                 $newServiceValidityForClient->save();
 
@@ -168,6 +213,14 @@ class ApiController extends Controller
         }
 
         DB::commit();
+
+
+        if($existingservice){
+            ProccessMessage::dispatch(env('SERVICE_ACCESS_REGISTERED_EXCHANGE'), env('RABBIT_MQ_EXCHANGE_TYPE'), json_encode($checkIfServiceWasRegisteredForClient));
+        }else{
+            ProccessMessage::dispatch(env('SERVICE_ACCESS_REGISTERED_EXCHANGE'), env('RABBIT_MQ_EXCHANGE_TYPE'), json_encode($newServiceValidityForClient));
+        }
+
 
 
         return response(GlobalResultHandler::buildSuccesResponseArray(date('Y-m-d', $checkIfServiceWasRegisteredForClient->startdate).' '.date('Y-m-d', $checkIfServiceWasRegisteredForClient->enddate)), 200);

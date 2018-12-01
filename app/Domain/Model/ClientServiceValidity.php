@@ -16,10 +16,11 @@ class ClientServiceValidity extends Model
 
     protected $table = 'client_service_validities';
 
-    protected $fillable = ['serviceid', 'clientid', 'tenantid', 'startdate', 'enddate', 'enablementstatus', 'reasonenablementchanged'];
+    protected $fillable = ['serviceid', 'clientid', 'tenantid', 'startdate', 'enddate', 'enablementstatus', 'expirationstatus', 'reasonenablementchanged'];
 
 
-    public function __construct($serviceid = null, $clientid = null, $tenantid = null, $startdate = null, $enddate = null, $enablementstatus = null,  $attributes = array())
+    public function __construct($serviceid = null, $clientid = null, $tenantid = null, $startdate = null, $enddate = null,
+                                $enablementstatus = null, $expirationstatus = null,  $reasonenablementchanged = null, $attributes = array())
     {
         parent::__construct($attributes);
         $this->serviceid = $serviceid;
@@ -28,5 +29,7 @@ class ClientServiceValidity extends Model
         $this->startdate = $startdate;
         $this->enddate = $enddate;
         $this->enablementstatus = $enablementstatus;
+        $this->expirationstatus = $expirationstatus;
+        $this->reasonenablementchanged = $reasonenablementchanged;
     }
 }
